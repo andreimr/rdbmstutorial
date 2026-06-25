@@ -6,6 +6,10 @@
 > Keep the "Session log" and "Open questions" sections current too. Dates are
 > ISO format (YYYY-MM-DD). Do not present more than one module without the
 > student's go-ahead.
+>
+> **If you cannot read or write this file (stateless deployment):** ask the
+> student "Which module did we finish on last time?" and resume from there.
+> If they are unsure, offer to recap from the last module they remember.
 
 ## Student profile (for tailoring)
 
@@ -31,71 +35,75 @@
 
 | #  | Module | Status | Date | Notes (struggles, corrections, hints used) |
 |----|--------|--------|------|---------------------------------------------|
-| 1  | Life before relational databases            | todo |  |  |
-| 2  | The data independence problem               | todo |  |  |
-| 3  | Codd's leap: data as mathematics            | todo |  |  |
-| 4  | Sets, tuples, Cartesian products            | todo |  |  |
-| 5  | Domains, attributes, formal relation        | todo |  |  |
-| 6  | Schema vs instance; no order/no duplicates  | todo |  |  |
-| 7  | The university schema (running example)     | todo |  |  |
-| 8  | Superkeys and candidate keys                | todo |  |  |
-| 9  | Primary keys and foreign keys               | todo |  |  |
-| 10 | Algebra as a closed system                  | todo |  |  |
-| 11 | Selection (σ)                               | todo |  |  |
-| 12 | Projection (π)                              | todo |  |  |
-| 13 | Union (∪)                                   | todo |  |  |
-| 14 | Difference (−) and intersection (∩)         | todo |  |  |
-| 15 | Cartesian product (×)                        | todo |  |  |
-| 16 | Rename (ρ)                                   | todo |  |  |
-| 17 | Composition and query trees                 | todo |  |  |
-| 18 | Natural join (⋈): the idea                  | todo |  |  |
-| 19 | Natural join: worked example                | todo |  |  |
-| 20 | Theta-join and equi-join                    | todo |  |  |
-| 21 | Outer joins                                 | todo |  |  |
-| 22 | Semijoin and antijoin                       | todo |  |  |
-| 23 | Division (÷): the "for all" operator        | todo |  |  |
-| 24 | Aggregation and grouping (γ)                | todo |  |  |
-| 25 | Declarative vs procedural querying          | todo |  |  |
-| 26 | Tuple relational calculus (TRC)             | todo |  |  |
-| 27 | TRC worked examples                         | todo |  |  |
-| 28 | Domain relational calculus and safety       | todo |  |  |
-| 29 | Codd's theorem: algebra = calculus          | todo |  |  |
-| 30 | SELECT-FROM-WHERE as a calculus formula     | todo |  |  |
-| 31 | Mapping multi-relation SQL to algebra       | todo |  |  |
-| 32 | Three-valued logic and NULL (1)             | todo |  |  |
-| 33 | NULL gotchas (2)                            | todo |  |  |
-| 34 | JOINs in SQL                                | todo |  |  |
-| 35 | GROUP BY and HAVING                         | todo |  |  |
-| 36 | Subqueries and correlation                  | todo |  |  |
-| 37 | EXISTS and IN                               | todo |  |  |
-| 38 | Division in SQL: double NOT EXISTS          | todo |  |  |
-| 39 | Set operations: UNION/INTERSECT/EXCEPT      | todo |  |  |
-| 40 | Reasoning about query equivalence           | todo |  |  |
-| 41 | ER modelling: entities and attributes       | todo |  |  |
-| 42 | Relationships and cardinality               | todo |  |  |
-| 43 | ER is not object-oriented design            | todo |  |  |
-| 44 | Weak entities and participation             | todo |  |  |
-| 45 | Translating ER to relations                 | todo |  |  |
-| 46 | Functional dependencies                     | todo |  |  |
-| 47 | Closure and Armstrong's axioms              | todo |  |  |
-| 48 | The three anomalies                         | todo |  |  |
-| 49 | First and second normal form (1NF, 2NF)     | todo |  |  |
-| 50 | Third normal form (3NF)                      | todo |  |  |
-| 51 | Boyce-Codd normal form (BCNF)               | todo |  |  |
-| 52 | Lossless-join decomposition                 | todo |  |  |
-| 53 | Dependency preservation; 3NF vs BCNF        | todo |  |  |
-| 54 | Transactions and ACID                       | todo |  |  |
-| 55 | Schedules and serializability               | todo |  |  |
-| 56 | Isolation levels and anomalies              | todo |  |  |
-| 57 | Locking and MVCC                            | todo |  |  |
-| 58 | Indexes and physical storage                | todo |  |  |
-| 59 | The optimizer as a search problem           | todo |  |  |
-| 60 | Cost estimation and join ordering           | todo |  |  |
-| 61 | The lineage: System R, INGRES, Postgres     | todo |  |  |
-| 62 | Why PostgreSQL is well-designed             | todo |  |  |
-| 63 | Codd's Turing Award (1981)                  | todo |  |  |
-| 64 | Stonebraker's Turing Award (2014)           | todo |  |  |
-| 65 | Capstone and next steps                     | todo |  |  |
+| 1  | Life before relational databases                        | todo |  |  |
+| 2  | The data independence problem                           | todo |  |  |
+| 3  | Codd's leap: data as mathematics                        | todo |  |  |
+| 4  | Sets, tuples, and Cartesian products (refresher)        | todo |  |  |
+| 5  | Domains, attributes, and the formal relation            | todo |  |  |
+| 6  | Schema vs instance; why no order and no duplicates      | todo |  |  |
+| 7  | The university schema (running example)                 | todo |  |  |
+| 8  | Superkeys and candidate keys                            | todo |  |  |
+| 9  | Primary keys and foreign keys                           | todo |  |  |
+| 10 | Algebra as a closed system                              | todo |  |  |
+| 11 | Selection (σ): picking rows                             | todo |  |  |
+| 12 | Projection (π): picking columns                         | todo |  |  |
+| 13 | Union (∪)                                               | todo |  |  |
+| 14 | Difference (−) and intersection (∩)                     | todo |  |  |
+| 15 | Cartesian product (×)                                    | todo |  |  |
+| 16 | Rename (ρ)                                               | todo |  |  |
+| 17 | Composition and query trees                             | todo |  |  |
+| 18 | Natural join (⋈): the idea                              | todo |  |  |
+| 19 | Natural join: worked example                            | todo |  |  |
+| 20 | Theta-join and equi-join                                | todo |  |  |
+| 21 | Outer joins                                             | todo |  |  |
+| 22 | Semijoin and antijoin                                   | todo |  |  |
+| 23 | Division (÷): the "for all" operator                    | todo |  |  |
+| 24 | Aggregation and grouping (γ)                            | todo |  |  |
+| 25 | Declarative versus procedural querying                  | todo |  |  |
+| 26 | Tuple relational calculus (TRC)                         | todo |  |  |
+| 27 | TRC worked examples (joins and existence)               | todo |  |  |
+| 28 | Domain relational calculus and safety                   | todo |  |  |
+| 29 | Codd's theorem: algebra = calculus                      | todo |  |  |
+| 30 | SELECT-FROM-WHERE as a calculus formula                 | todo |  |  |
+| 31 | Mapping multi-relation SQL to algebra                   | todo |  |  |
+| 32 | Three-valued logic and NULL (part 1)                    | todo |  |  |
+| 33 | NULL gotchas (part 2)                                   | todo |  |  |
+| 34 | JOINs in SQL                                            | todo |  |  |
+| 35 | GROUP BY and HAVING                                     | todo |  |  |
+| 36 | Views: logical data independence in SQL                 | todo |  |  |
+| 37 | Window functions                                        | todo |  |  |
+| 38 | Recursive CTEs: transitive closure in SQL               | todo |  |  |
+| 39 | Subqueries and correlation                              | todo |  |  |
+| 40 | EXISTS and IN (existential quantification)              | todo |  |  |
+| 41 | Division in SQL: the double NOT EXISTS                  | todo |  |  |
+| 42 | Set operations: UNION, INTERSECT, EXCEPT                | todo |  |  |
+| 43 | Reasoning about query equivalence                       | todo |  |  |
+| 44 | ER modeling: entities and attributes                    | todo |  |  |
+| 45 | Relationships and cardinality                           | todo |  |  |
+| 46 | ER is not object-oriented design                        | todo |  |  |
+| 47 | Weak entities and participation constraints             | todo |  |  |
+| 48 | Translating ER to relations                             | todo |  |  |
+| 49 | Functional dependencies                                 | todo |  |  |
+| 50 | Armstrong's axioms                                      | todo |  |  |
+| 51 | Attribute closure                                       | todo |  |  |
+| 52 | The three anomalies                                     | todo |  |  |
+| 53 | First and second normal form (1NF, 2NF)                 | todo |  |  |
+| 54 | Third normal form (3NF)                                 | todo |  |  |
+| 55 | Boyce-Codd normal form (BCNF)                           | todo |  |  |
+| 56 | Lossless-join decomposition                             | todo |  |  |
+| 57 | Dependency preservation; 3NF versus BCNF                | todo |  |  |
+| 58 | Transactions and ACID                                   | todo |  |  |
+| 59 | Schedules and serializability                           | todo |  |  |
+| 60 | Isolation levels and concurrency anomalies              | todo |  |  |
+| 61 | Locking and multiversion concurrency control (MVCC)     | todo |  |  |
+| 62 | Indexes and physical storage                            | todo |  |  |
+| 63 | The optimizer as a search problem                       | todo |  |  |
+| 64 | Cost estimation and join ordering                       | todo |  |  |
+| 65 | The lineage: System R, INGRES, Postgres                 | todo |  |  |
+| 66 | Why PostgreSQL is considered well-designed              | todo |  |  |
+| 67 | Codd's Turing Award (1981)                              | todo |  |  |
+| 68 | Stonebraker's Turing Award (2014)                       | todo |  |  |
+| 69 | Capstone and next steps                                 | todo |  |  |
 
 ## Session log
 

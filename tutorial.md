@@ -46,18 +46,35 @@ You are the tutor. Follow these rules every session.
    first and resume from the first incomplete module. Briefly recap the prior
    module before continuing.
 
-6. **Tone.** Warm, precise, concise. This student likes formal statements:
-   give definitions and theorems plainly. Use analogies to AI / theory of
-   computation / OO design where the notes suggest them, because they land well
-   for this learner.
+   **If you cannot read or write `progress.md` (stateless deployment):** ask the
+   student at the start of every session: "Which module did we finish on last
+   time?" and resume from there. If they are unsure, offer to recap from the
+   last module they remember. Do not start over from Module 1 unless they ask.
 
-7. **Notation.** Use these symbols for relational algebra: σ (select), π
-   (project), ∪ (union), ∩ (intersect), − (difference), × (product), ⋈
+6. **Handling tangents.** This student is intellectually curious and will ask
+   questions that belong to later modules. When that happens: name the module
+   that covers it, give one sentence orienting them ("that is exactly what
+   Module 38 is about"), and say "let's get there in sequence." Do not skip
+   ahead or teach the later topic in full.
+
+7. **Partial answers.** Many answers will be partly right. Affirm the correct
+   part explicitly, then say "one thing to add:" and supply the missing piece.
+   Do not re-teach from scratch for a half-right answer.
+
+8. **Tone.** Warm, precise, concise. This student likes formal statements:
+   give definitions and theorems plainly. Use analogies to AI / theory of
+   computation / OO design where the notes suggest them. You may offer analogies
+   the notes do not suggest, but label them clearly as analogies, not
+   definitions, so the student knows what is formal and what is illustrative.
+
+9. **Notation.** Use these symbols for relational algebra: σ (select), π
+   (project), ∪ (union), ∩ (intersect, derived), − (difference), × (product), ⋈
    (natural join), ⟕ ⟖ ⟗ (left/right/full outer join), ÷ (division), ρ
    (rename), γ (grouping/aggregation). Render math inline in plain text when a
-   chat cannot show LaTeX.
+   chat cannot show LaTeX. For FDs, X → Y means "X functionally determines Y";
+   X⁺ means the closure of attribute set X.
 
-8. **No running a real database.** This course is deliberately pencil-and-paper.
+10. **No running a real database.** This course is deliberately pencil-and-paper.
    The student does not need Postgres installed. Everything is reasoned about
    formally. SQL appears as an object of analysis, not as something to execute.
 
@@ -357,17 +374,22 @@ MA200  2026F  1      12   R3
 ```
 
 **Exercise.**
-Using the instance above, answer by hand: which courses is student 101 (Ada)
-enrolled in, and who teaches each of those sections?
+Using the instance above, answer by hand (matching values across tables):
+(a) Which rows of Enrol belong to student 101 (Ada)?
+(b) Using those rows, look up the matching rows in Section. What room does Ada
+attend for CS101?
 
 **Model answer.**
-Ada (101) is enrolled in CS101 (2026F, sec 1) and CS305 (2026F, sec 1). Both
-those sections have iid 11 = Knuth. So Knuth teaches both.
+(a) The two Enrol rows with sid=101: (101,CS101,2026F,1,A) and
+(101,CS305,2026F,1,B).
+(b) Match (cid=CS101, term=2026F, sec_no=1) in Section → room R1. Ada attends CS101
+in room R1.
 
 **Feedback notes.**
-Watch the join path: Enrol gives (cid, term, sec_no); match those into Section
-to get iid; match iid into Instructor for the name. This is the natural-join
-path we will formalize soon.
+Keep the exercise to pure value-matching across tables; we have not yet defined
+keys formally (Modules 8–9). The join path here (Enrol → Section → Instructor
+via shared column values) is exactly what we will formalize as a natural join
+starting in Module 18.
 
 ## Module 8. Superkeys and candidate keys
 
@@ -555,10 +577,10 @@ requirement?
 
 **Model answer.**
 No. Student is (sid, sname, major, year) and Instructor is (iid, iname, dept,
-salary); they differ in arity is the same (4) but the domains/meanings per
-position do not match (year vs salary, major vs dept), so union is not
-meaningful. The requirement: same arity and compatible domains position by
-position (and, in practice, comparable attribute meanings).
+salary). The arity is the same (both 4), which is necessary but not sufficient.
+The domains and meanings per position do not match (major vs dept, year vs
+salary), so union is not meaningful. The requirement: same arity and compatible
+domains position by position (and, in practice, comparable attribute meanings).
 
 **Feedback notes.**
 If they say "yes, both have 4 columns," correct: equal arity is necessary but
@@ -815,8 +837,10 @@ join would have dropped her entirely.
 
 **Feedback notes.**
 This is the first appearance of null. Flag that null is not zero and not empty
-string; it means "no value here," and it triggers three-valued logic, which we
-treat carefully in the SQL part.
+string; it means "no value here." Null propagates through comparisons in a
+non-obvious way (a comparison like `salary > 100` on a null salary does not
+return false; it returns a third value, "unknown"). We treat this carefully in
+Modules 32–33; for now, just know that null means "absent."
 
 ## Module 22. Semijoin and antijoin
 
@@ -1305,7 +1329,179 @@ condition must go in HAVING.
 The FROM→WHERE→GROUP BY→HAVING→SELECT pipeline is worth having them recite. Most
 GROUP BY confusion dissolves once that order is internalized.
 
-## Module 36. Subqueries and correlation
+## Module 36. Views: logical data independence in SQL
+
+**Goal:** views as the SQL realization of logical data independence.
+
+**Teaching content.**
+Recall Module 2: logical data independence means the logical schema can change
+with limited disruption to applications. In SQL, **views** are the mechanism.
+
+A **view** is a named query stored as a definition:
+
+```
+CREATE VIEW cs_sections AS
+  SELECT s.cid, s.term, s.sec_no, s.room, i.iname
+  FROM   Section s JOIN Instructor i ON s.iid = i.iid
+  WHERE  i.dept = 'CS';
+```
+
+Once defined, `cs_sections` looks like a relation. You query it exactly as you
+would a base table:
+
+```
+SELECT * FROM cs_sections WHERE term = '2026F';
+```
+
+The DBMS rewrites that query by substituting the view definition, producing the
+real query over base tables. The user of the view does not need to know the
+underlying schema, and if the base schema changes in a compatible way, you can
+often update the view definition rather than every query that used it.
+
+This is logical data independence made operational: the view is the stable
+interface; the base tables are the implementation.
+
+Views also serve security (expose only some columns), simplification (hide
+complex joins from users who do not need to think about them), and naming
+frequently-used sub-expressions.
+
+**Exercise.**
+(a) Write a view `student_load` that shows each student's sid and the number of
+sections they are currently enrolled in (count of Enrol rows per sid). (b) How
+does this view illustrate logical data independence if we later decide to rename
+the Enrol table?
+
+**Model answer.**
+(a)
+```
+CREATE VIEW student_load AS
+  SELECT sid, COUNT(*) AS n_sections
+  FROM   Enrol
+  GROUP BY sid;
+```
+(b) If Enrol is renamed, we update the view definition in one place rather than
+changing every query that counts enrolments. Queries written against
+`student_load` are unaffected: they see the same interface (sid, n_sections)
+regardless of what the underlying table is called. That is logical data
+independence in action.
+
+**Feedback notes.**
+Tie explicitly back to Module 2. If the student asks about updating views (INSERT
+through a view), note it as a real but tricky topic (updatable vs non-updatable
+views) that Postgres handles; it is beyond our scope here.
+
+## Module 37. Window functions
+
+**Goal:** computation across a window of rows without collapsing them.
+
+**Teaching content.**
+`GROUP BY` collapses each group into one row. Sometimes you want aggregate-style
+computations without losing the individual rows, for example "each student's
+grade alongside the average grade for that course." That is what **window
+functions** do.
+
+Syntax:
+
+```
+SELECT sid, grade,
+       AVG(grade_numeric) OVER (PARTITION BY cid) AS course_avg
+FROM   enrol_with_numeric_grade;
+```
+
+The `OVER (PARTITION BY …)` clause defines the **window**: the rows to aggregate
+over for each output row. The output row is kept; the window function adds an
+extra column computed over the window.
+
+Key window functions:
+- `AVG / SUM / COUNT / MIN / MAX OVER (…)`: standard aggregates over a window.
+- `RANK() OVER (ORDER BY …)`: rank within a partition.
+- `ROW_NUMBER() OVER (…)`: sequential numbering.
+- `LAG / LEAD OVER (ORDER BY …)`: previous/next row's value.
+
+Why it matters for goal 1 (efficient querying): before window functions, "rank
+within a group" required either a self-join or a correlated subquery, both
+expensive. Window functions express the same thing in one pass over the data.
+
+**Exercise.**
+In plain English, describe what the following query computes (no running needed):
+```
+SELECT iname, salary,
+       RANK() OVER (PARTITION BY dept ORDER BY salary DESC) AS dept_rank
+FROM   Instructor;
+```
+
+**Model answer.**
+For each instructor, it shows their name, salary, and their salary rank within
+their own department (rank 1 = highest paid). Instructors in different
+departments are ranked independently because of `PARTITION BY dept`. The output
+has one row per instructor (not one per department group, as GROUP BY would give).
+
+**Feedback notes.**
+The key contrast to drive home: GROUP BY reduces rows; OVER keeps rows and adds
+a column. If they struggle with PARTITION BY, compare it to GROUP BY: "partition"
+is the window version of "group," but it does not collapse.
+
+## Module 38. Recursive CTEs: transitive closure in SQL
+
+**Goal:** close the gap opened in Module 29 (algebra cannot express transitive closure).
+
+**Teaching content.**
+Recall Module 29: relational algebra cannot express transitive closure (e.g.,
+"all prerequisites of a prerequisite, recursively"). SQL extends algebra with
+recursive Common Table Expressions (CTEs) for exactly this.
+
+A **CTE** (`WITH` clause) names a subquery for reuse:
+
+```
+WITH ranked AS (
+  SELECT iname, salary,
+         RANK() OVER (PARTITION BY dept ORDER BY salary DESC) AS rk
+  FROM Instructor
+)
+SELECT * FROM ranked WHERE rk = 1;
+```
+
+A **recursive CTE** adds a self-referencing `UNION ALL`:
+
+```
+WITH RECURSIVE prereq(cid, prereq_cid) AS (
+  -- base case: direct prerequisites
+  SELECT cid, prereq_cid FROM DirectPrereq
+  UNION ALL
+  -- recursive step: add one more level
+  SELECT r.cid, d.prereq_cid
+  FROM   prereq r JOIN DirectPrereq d ON r.prereq_cid = d.cid
+)
+SELECT * FROM prereq WHERE cid = 'CS305';
+```
+
+The engine iterates the recursive step until no new rows appear. This computes
+the transitive closure of the prerequisite relation, something plain algebra or
+non-recursive SQL cannot do.
+
+This closes the expressiveness gap noted in Module 29: recursion/transitive
+closure sits *above* relational completeness and requires an explicit extension.
+SQL provides it; the relational algebra by itself does not.
+
+**Exercise.**
+The recursive CTE above terminates because the relation is acyclic (no circular
+prerequisites). What would happen if there were a cycle (A is a prereq of B, B
+is a prereq of A)? How do real systems protect against this?
+
+**Model answer.**
+The recursive step would keep adding the same rows in an infinite loop; the
+query would not terminate. Real systems protect against this with: (a) a depth
+limit (`WITH RECURSIVE … LIMIT` or a depth counter column), (b) a visited-set
+check (`WHERE cid NOT IN (SELECT cid FROM visited)`), or (c) `UNION` instead of
+`UNION ALL` to deduplicate (stops when no new rows are added, which detects
+fixpoint even on cyclic graphs). PostgreSQL supports all three strategies.
+
+**Feedback notes.**
+The cycle question is important for a student with graph-algorithm background;
+they will immediately recognise it as a DFS/BFS termination issue. Reward any
+answer that frames it as a fixpoint / visited-set problem.
+
+## Module 39. Subqueries and correlation
 
 **Goal:** nested queries, and the difference between uncorrelated and correlated.
 
@@ -1344,7 +1540,7 @@ If they write it uncorrelated (global average), point at the requirement "their
 own department" and ask what must change. The inner WHERE referencing the outer
 alias is the whole idea.
 
-## Module 37. EXISTS and IN (existential quantification)
+## Module 40. EXISTS and IN (existential quantification)
 
 **Goal:** the SQL forms of "a match exists."
 
@@ -1382,7 +1578,7 @@ section.)
 `SELECT 1` (or `SELECT *`) inside EXISTS is idiomatic: the projected value is
 irrelevant, only row existence matters. Reassure them this is not a typo.
 
-## Module 38. Division in SQL: the double NOT EXISTS
+## Module 41. Division in SQL: the double NOT EXISTS
 
 **Goal:** express "for all" in SQL, the hardest common pattern.
 
@@ -1423,7 +1619,7 @@ not enrolled in it." Together: ∀ course ∃ enrolment.
 This is the conceptual summit of the SQL part. If they struggle, walk the
 ∀x P(x) ≡ ¬∃x ¬P(x) equivalence first, then map each ∃/¬ onto a NOT EXISTS.
 
-## Module 39. Set operations: UNION, INTERSECT, EXCEPT
+## Module 42. Set operations: UNION, INTERSECT, EXCEPT
 
 **Goal:** SQL's ∪, ∩, − and the DISTINCT/ALL distinction.
 
@@ -1455,11 +1651,11 @@ the data it returns 103 (Curie). EXCEPT uses set semantics by default, so the
 result has distinct sids.
 
 **Feedback notes.**
-Contrast with the NOT EXISTS version (Module 37/38): same answer, different
+Contrast with the NOT EXISTS version (Module 40/41): same answer, different
 phrasing. Both are worth recognizing; EXCEPT is often the most readable for
 "in A but not B."
 
-## Module 40. Reasoning about query equivalence
+## Module 43. Reasoning about query equivalence
 
 **Goal:** use algebraic laws to argue two SQL queries are the same (or not).
 
@@ -1497,7 +1693,7 @@ behaviour.
 
 # PART VI. DESIGN I: ENTITY-RELATIONSHIP MODELING
 
-## Module 41. ER modeling: entities and attributes
+## Module 44. ER modeling: entities and attributes
 
 **Goal:** the first half of the conceptual design vocabulary.
 
@@ -1527,7 +1723,7 @@ multivalued, or derived.
 
 **Model answer.**
 Entity sets: Student, Course, Instructor (Section and Enrol are arguably
-relationships, see Module 42). For Student: key sid (underlined), plus sname,
+relationships, see Module 45). For Student: key sid (underlined), plus sname,
 major, year. If we added "phone numbers," that would be multivalued; a full
 "address" would be composite; "GPA" computed from grades would be derived.
 
@@ -1535,7 +1731,7 @@ major, year. If we added "phone numbers," that would be multivalued; a full
 Accept Section/Enrol as entity sets too; the entity-vs-relationship line is
 genuinely a modelling choice, which sets up the next module nicely.
 
-## Module 42. Relationships and cardinality
+## Module 45. Relationships and cardinality
 
 **Goal:** the third notion, and how many-to-many shapes the schema.
 
@@ -1552,7 +1748,7 @@ enrolment belongs to the *relationship*, not to the student or the section).
 - **many-to-many (M:N):** a student enrols in many sections; a section has many
   students.
 
-Cardinality drives the relational mapping (Module 45): M:N relationships always
+Cardinality drives the relational mapping (Module 48): M:N relationships always
 become their own relation; 1:N can often be folded into the "many" side.
 
 **Exercise.**
@@ -1571,7 +1767,7 @@ student alone or the section alone.
 The "grade lives on the relationship" point is the key insight; it is exactly
 why Enrol exists as its own relation with grade as an attribute.
 
-## Module 43. ER is not object-oriented design
+## Module 46. ER is not object-oriented design
 
 **Goal:** dissolve the student's stated OO/ER confusion head-on.
 
@@ -1617,7 +1813,7 @@ This module often produces an "aha." Let the student articulate the difference
 in their own words; correct any lingering "the relationship belongs to one
 class" framing.
 
-## Module 44. Weak entities and participation constraints
+## Module 47. Weak entities and participation constraints
 
 **Goal:** two refinements that capture real constraints.
 
@@ -1656,7 +1852,7 @@ is what shows up as null in a LEFT JOIN, not a null foreign key.
 Tie total participation back to referential integrity and the LEFT-JOIN antijoin
 of Module 34: partial participation is precisely what creates unmatched rows.
 
-## Module 45. Translating ER to relations
+## Module 48. Translating ER to relations
 
 **Goal:** the mechanical mapping from diagram to schema.
 
@@ -1700,7 +1896,7 @@ not minimal, since 1:N folds in.
 
 # PART VII. DESIGN II: FUNCTIONAL DEPENDENCIES AND NORMALIZATION
 
-## Module 46. Functional dependencies
+## Module 49. Functional dependencies
 
 **Goal:** the single concept underlying all of normalization.
 
@@ -1737,44 +1933,84 @@ Drive home "FDs are claims about all legal instances, not artifacts of one
 sample." A passing instance never *proves* an FD; a single counterexample
 *disproves* it.
 
-## Module 47. Closure and Armstrong's axioms
+## Module 50. Armstrong's axioms
 
-**Goal:** the inference rules and the closure of an attribute set.
+**Goal:** the formal inference rules for functional dependencies.
 
 **Teaching content.**
-From a set of FDs you can *infer* others. **Armstrong's axioms** are a sound and
-complete inference system:
+From a set of FDs you can *infer* others using a proof system. **Armstrong's
+axioms** are sound and complete for FD implication (every derivable FD holds,
+and every implied FD is derivable):
 
-- **Reflexivity:** if Y ⊆ X then X → Y.
-- **Augmentation:** if X → Y then XZ → YZ.
+- **Reflexivity:** if Y ⊆ X then X → Y. (A set of attributes trivially
+  determines any subset of itself.)
+- **Augmentation:** if X → Y then XZ → YZ. (Here XZ means X ∪ Z, for any
+  attribute set Z; adding the same attributes to both sides preserves the FD.)
 - **Transitivity:** if X → Y and Y → Z then X → Z.
 
-(Useful derived rules: union, decomposition, pseudotransitivity.)
+Useful derived rules (all provable from the three axioms):
+- **Union:** if X → Y and X → Z then X → YZ.
+- **Decomposition:** if X → YZ then X → Y and X → Z.
+- **Pseudotransitivity:** if X → Y and WY → Z then WX → Z.
 
-**Attribute closure.** Given attribute set X and FD set F, the **closure** X⁺ is
-the set of all attributes determined by X under F. Algorithm: start with X;
-repeatedly, if some FD V → W has V ⊆ current set, add W; stop at a fixpoint.
+Analogy: this is a Hilbert-style proof system for a specific theory, much like
+propositional logic has modus ponens + substitution. "Sound and complete" here
+means complete for FD-implication derivation (not Gödel-completeness).
 
-Why it matters: X is a **superkey** iff X⁺ = all attributes. So closure is how
-you *test* keys and *check* whether an FD is implied.
+**Exercise.**
+Using the axioms, derive iid, dept → iname from {iid → iname, dept → dept_head}.
+Identify which axiom each step uses.
+
+**Model answer.**
+1. iid → iname (given).
+2. iid, dept → iname (augmentation: add dept to both sides of step 1, giving
+   iid ∪ {dept} → iname ∪ {dept}; then decomposition gives iid, dept → iname).
+Shorter path: by augmentation directly, iid → iname gives iid, dept → iname,
+dept; by decomposition, iid, dept → iname. ✓
+
+**Feedback notes.**
+Accept any derivation that names the axioms, even informally. The key habit is
+justifying each step. If they skip to "obviously iid,dept determines iname since
+iid does," have them write that as augmentation + decomposition.
+
+## Module 51. Attribute closure
+
+**Goal:** the algorithm for computing what an attribute set determines.
+
+**Teaching content.**
+**Definition.** Given attribute set X and FD set F, the **closure** X⁺ is the
+set of all attributes functionally determined by X under F.
+
+**Algorithm:**
+1. Start: result := X.
+2. Repeat: for every FD V → W in F, if V ⊆ result, add W to result.
+3. Stop when nothing new can be added (fixpoint).
+
+Why it matters:
+- X is a **superkey** iff X⁺ = all attributes of the relation.
+- An FD X → Y is implied by F iff Y ⊆ X⁺.
+
+So closure is how you test candidate keys and verify implied FDs, without
+enumerating all derivations. It is the workhorse of the entire Part VII.
 
 **Exercise.**
 On Section with FDs { (cid,term,sec_no) → iid, room ; iid → dept }, compute
 {cid,term,sec_no}⁺. Is {cid,term,sec_no} a superkey of this (extended) relation?
 
 **Model answer.**
-Start {cid,term,sec_no}. Apply (cid,term,sec_no)→iid,room: add iid, room →
-{cid,term,sec_no,iid,room}. Apply iid→dept: add dept →
-{cid,term,sec_no,iid,room,dept}. Fixpoint. If those six are all the attributes,
-then yes, {cid,term,sec_no}⁺ = all attributes, so it is a superkey (and, being
-minimal here, a candidate key).
+Start {cid,term,sec_no}. Apply (cid,term,sec_no)→iid,room: V={cid,term,sec_no}
+⊆ current → add iid, room → {cid,term,sec_no,iid,room}. Apply iid→dept: V={iid}
+⊆ current → add dept → {cid,term,sec_no,iid,room,dept}. Fixpoint. If those six
+are all the attributes, then {cid,term,sec_no}⁺ = all attributes, so it is a
+superkey (and minimal here, so a candidate key too).
 
 **Feedback notes.**
-The closure algorithm is the workhorse of the whole part. Have them narrate each
-addition and which FD triggered it. The transitive pickup of dept via iid is the
-instructive step.
+Have them narrate each iteration: "which FD fired, what was added." The
+transitive pickup of dept via iid in step 2 is the instructive moment: it shows
+why transitive dependencies survive even when you do not add the transitive FD
+explicitly to F.
 
-## Module 48. The three anomalies
+## Module 52. The three anomalies
 
 **Goal:** motivate normalization by the pain bad design causes.
 
@@ -1811,7 +2047,7 @@ vanish with it.
 Anchor each anomaly to the offending FD cid → (title, dept, credits). The fix
 (splitting Course out) is the concrete payoff of the next modules.
 
-## Module 49. First and second normal form (1NF, 2NF)
+## Module 53. First and second normal form (1NF, 2NF)
 
 **Goal:** the first two rungs of the normalization ladder.
 
@@ -1845,15 +2081,21 @@ Make the "partial = depends on part of a composite key" definition crisp.
 Reinforce that single-column keys cannot have partial dependencies, so 2NF is
 only interesting with composite keys.
 
-## Module 50. Third normal form (3NF)
+## Module 54. Third normal form (3NF)
 
 **Goal:** eliminate transitive dependencies on the key.
 
 **Teaching content.**
-**3NF.** In 1NF, and for every FD X → A with A a non-prime attribute, either X is
-a superkey or A is prime. Informally: no non-prime attribute depends on another
-non-prime attribute (no **transitive dependency** key → X → A where X is not a
-key).
+A **transitive dependency** exists when key → X → A, where X is a non-key
+attribute that in turn determines A. A depends on the key *transitively* (via X)
+rather than directly. The redundancy this causes is the same problem as in 2NF
+but for non-prime attributes rather than partial keys.
+
+**3NF.** A relation is in 1NF and, for every *nontrivial* FD X → A, at least one
+of these holds: (1) X is a superkey, or (2) A is a **prime** attribute (member
+of some candidate key). The key word is *or*: both conditions are alternatives,
+with no prior restriction on A. Informally: the only non-superkey determinants
+allowed are those where the determined attribute is already part of some key.
 
 Classic violation: in Section-plus-dept with key (cid, term, sec_no) and FDs
 (cid,term,sec_no) → iid and iid → dept, we have a transitive dependency
@@ -1862,7 +2104,7 @@ duplicates the instructor-department fact. Fix: split out (iid, dept) into its
 own relation (it already lives in Instructor).
 
 3NF is the usual practical target: it removes most redundancy while always being
-achievable with a lossless, dependency-preserving decomposition (Module 53).
+achievable with a lossless, dependency-preserving decomposition (Module 57).
 
 **Exercise.**
 R(iid, iname, dept, dept_head) with FDs iid → iname, dept and dept → dept_head.
@@ -1878,7 +2120,7 @@ each non-key attribute depends directly on its relation's key.
 "key → nonkey → nonkey" is the pattern to spot. Connect to the deletion anomaly:
 the last instructor leaving a department would otherwise erase the dept_head fact.
 
-## Module 51. Boyce-Codd normal form (BCNF)
+## Module 55. Boyce-Codd normal form (BCNF)
 
 **Goal:** the stricter form and exactly how it exceeds 3NF.
 
@@ -1916,7 +2158,7 @@ entire difference between the two forms here.
 This is subtle; let them compute the candidate keys first. The "subject is prime,
 so 3NF forgives it but BCNF does not" line is the exact hinge.
 
-## Module 52. Lossless-join decomposition
+## Module 56. Lossless-join decomposition
 
 **Goal:** the correctness criterion for splitting a relation.
 
@@ -1949,7 +2191,7 @@ Contrast with a lossy split (e.g. on a non-key shared attribute) to show phantom
 tuples appearing. The "shared attributes must key one side" rule is the thing to
 remember.
 
-## Module 53. Dependency preservation; 3NF versus BCNF
+## Module 57. Dependency preservation; 3NF versus BCNF
 
 **Goal:** the fundamental trade-off, and why 3NF is the usual target.
 
@@ -1963,7 +2205,7 @@ The deep result:
 - **3NF** is always achievable with a decomposition that is *both* lossless-join
   *and* dependency-preserving.
 - **BCNF** is always achievable lossless-join, but **sometimes not while also
-  preserving dependencies.** The R(student, subject, teacher) case from Module 51
+  preserving dependencies.** The R(student, subject, teacher) case from Module 55
   is the standard example: forcing BCNF splits it so that (student, subject) →
   teacher can no longer be checked without a join.
 
@@ -1994,7 +2236,7 @@ preservation.
 
 # PART VIII. SYSTEMS: TRANSACTIONS, CONCURRENCY, OPTIMIZATION
 
-## Module 54. Transactions and ACID
+## Module 58. Transactions and ACID
 
 **Goal:** what a transaction is and the four guarantees.
 
@@ -2033,7 +2275,7 @@ Consistency is the property students most often misattribute; clarify it is abou
 preserving declared invariants across the whole transaction, leaning on atomicity
 and isolation to do so.
 
-## Module 55. Schedules and serializability
+## Module 59. Schedules and serializability
 
 **Goal:** the formal correctness criterion for concurrent execution.
 
@@ -2062,17 +2304,24 @@ W1(X), W2(X). Draw the precedence-graph edges and decide whether it is conflict
 serializable.
 
 **Model answer.**
-Conflicts: R1(X) before W2(X) gives T1→T2; R2(X) before W1(X) gives T2→T1; also
-W1(X) before W2(X) gives T1→T2. The edges T1→T2 and T2→T1 form a cycle, so the
-graph is cyclic and the schedule is **not** conflict serializable. (This is the
-classic lost-update interleaving.)
+Conflicts (pairs of operations from different transactions on the same item,
+at least one a write, in schedule order):
+- R1(X) before W2(X): T1→T2.
+- R2(X) before W1(X): T2→T1.
+- W1(X) before W2(X): T1→T2 (duplicate: the graph already has this edge).
+
+A precedence graph has at most one directed edge per ordered pair of transactions.
+So the graph has exactly two distinct edges: T1→T2 and T2→T1. They form a cycle;
+the schedule is **not** conflict serializable. (This is the classic lost-update
+interleaving.)
 
 **Feedback notes.**
 Acyclic ⇔ serializable is the rule. If they miss the T2→T1 edge, point at R2(X)
 preceding W1(X): a read-before-write on the same item across transactions is a
-conflict.
+conflict. Stress that duplicate edges collapse to one; the graph node/edge count
+is over *transactions*, not operations.
 
-## Module 56. Isolation levels and concurrency anomalies
+## Module 60. Isolation levels and concurrency anomalies
 
 **Goal:** the SQL-standard levels and what each permits.
 
@@ -2095,7 +2344,14 @@ The levels, from weakest to strongest:
 | REPEATABLE READ | no | no | possible |
 | SERIALIZABLE | no | no | no |
 
-SERIALIZABLE is the only level that guarantees the serializability of Module 55.
+SERIALIZABLE is the only level that guarantees the serializability of Module 59.
+
+**PostgreSQL note:** the table above reflects the SQL standard. PostgreSQL's
+REPEATABLE READ is implemented via MVCC snapshots and, in practice, also prevents
+phantoms (it is stronger than the standard requires). So on PostgreSQL, the table
+would show REPEATABLE READ → no phantom. When you read PostgreSQL documentation
+it uses the term *snapshot isolation* for this. This is a case where an
+implementation exceeds the standard's minimum guarantee.
 
 **Exercise.**
 You run `SELECT COUNT(*) FROM Enrol WHERE cid='CS305'` twice in one transaction
@@ -2114,7 +2370,7 @@ Distinguish phantom (new/removed rows in a range) from non-repeatable read
 (changed value of an existing row). The table's diagonal structure is the thing
 to remember.
 
-## Module 57. Locking and multiversion concurrency control (MVCC)
+## Module 61. Locking and multiversion concurrency control (MVCC)
 
 **Goal:** the two main mechanisms, and why MVCC matters for Postgres.
 
@@ -2126,11 +2382,13 @@ How do systems actually achieve isolation? Two broad strategies.
   any, guarantees conflict-serializable schedules. Cost: readers and writers
   block each other, and deadlocks can occur.
 
-- **MVCC (optimistic, multiversion).** Each write creates a new *version* of a
-  row rather than overwriting; each transaction reads the version consistent with
-  its start-time snapshot. The decisive consequence: **readers never block
-  writers and writers never block readers.** A reader sees a stable snapshot
-  without taking locks.
+- **MVCC (multiversion concurrency control).** Each write creates a new *version*
+  of a row rather than overwriting it; each transaction reads the version
+  consistent with its start-time snapshot. The decisive consequence: **readers
+  never block writers and writers never block readers.** A reader sees a stable
+  snapshot without taking any locks. (MVCC is a *versioning strategy*, distinct
+  from optimistic/pessimistic conflict detection; PostgreSQL adds Serializable
+  Snapshot Isolation on top for full serializability.)
 
 PostgreSQL uses MVCC at its core. This is a large part of why it scales well for
 mixed read/write workloads and why "snapshot" isolation feels natural there. The
@@ -2154,7 +2412,7 @@ garbage-collected (VACUUM in Postgres).
 The "readers don't block writers, writers don't block readers" slogan is the
 headline. Connect VACUUM to it so the trade-off is honest, not magic.
 
-## Module 58. Indexes and physical storage
+## Module 62. Indexes and physical storage
 
 **Goal:** the access structures behind physical data independence.
 
@@ -2191,7 +2449,7 @@ independence in action.
 Reinforce "indexes change cost, not answers." The hash-can't-do-ranges point is
 the discriminating fact between the two index types.
 
-## Module 59. The optimizer as a search problem
+## Module 63. The optimizer as a search problem
 
 **Goal:** connect query optimization to the student's AI/planning background.
 
@@ -2203,12 +2461,12 @@ the gap. It takes the logical algebra expression and searches a space of
 This is, almost literally, an AI search/planning problem, which should resonate:
 - **State space:** the set of equivalent query plans (different join orders,
   different access methods, σ/π pushed to different places).
-- **Operators:** algebraic equivalence rules (Module 40) plus physical choices
+- **Operators:** algebraic equivalence rules (Module 43) plus physical choices
   (use index vs scan; hash-join vs sort-merge-join vs nested-loop-join).
 - **Cost function:** an estimate of work (I/O and CPU), computed from
   **statistics** about the data (table sizes, value distributions, histograms).
 - **Search:** because the space is huge (join orderings alone are
-  super-exponential), the optimizer uses pruning and heuristics; the classic
+  factorial), the optimizer uses pruning and heuristics; the classic
   System R optimizer used dynamic programming over join orders.
 
 So a query optimizer is a planner that searches a space of equivalent plans under
@@ -2223,7 +2481,7 @@ infeasible.
 **Model answer.**
 (a) the state space / set of reachable states; (b) the operators/actions that
 transition between states; (c) the heuristic/objective cost guiding the search;
-(d) because the space (especially join orderings) grows super-exponentially, so
+(d) because the space (especially join orderings) grows factorially, so
 the planner must prune and use heuristics or dynamic programming rather than
 enumerate every plan.
 
@@ -2231,7 +2489,7 @@ enumerate every plan.
 This module is designed to click for this student. Encourage them to push the
 analogy: an optimizer is to SQL what a planner is to a goal specification.
 
-## Module 60. Cost estimation and join ordering
+## Module 64. Cost estimation and join ordering
 
 **Goal:** make the cost model and join-order problem concrete.
 
@@ -2260,7 +2518,7 @@ Intuitively, should the optimizer apply the cid='CS305' selection before or afte
 the joins, and why, in terms of intermediate result size?
 
 **Model answer.**
-Before (push the selection down, Module 17/40). Filtering Enrol to just CS305
+Before (push the selection down, Module 17/43). Filtering Enrol to just CS305
 rows first makes the relation feeding the join tiny, so the join's intermediate
 result is small. Joining first and filtering later would build a large
 Student-Enrol intermediate only to throw most of it away. Smaller intermediates
@@ -2273,7 +2531,7 @@ terms of intermediate sizes.
 
 # PART IX. SYNTHESIS: THE LINEAGE AND THE TURING AWARDS
 
-## Module 61. The lineage: System R, INGRES, Postgres
+## Module 65. The lineage: System R, INGRES, Postgres
 
 **Goal:** the historical through-line from theory to systems.
 
@@ -2283,7 +2541,7 @@ A compressed history connects every part of this course:
 - **1970:** Codd publishes the relational model (theory) at IBM.
 - **mid-1970s:** Two landmark prototypes turn theory into working systems.
   **System R** at IBM (which produced SEQUEL, later SQL, and the dynamic-
-  programming optimizer of Module 59). **INGRES** at UC Berkeley, led by Michael
+  programming optimizer of Module 63). **INGRES** at UC Berkeley, led by Michael
   Stonebraker and Eugene Wong (which used the QUEL language and pioneered much
   systems engineering).
 - **1980s:** Relational systems become commercial (System R's ideas flow into
@@ -2312,7 +2570,7 @@ became today's PostgreSQL.
 The key relationship to lock in: theory (Codd) → two seminal systems (System R,
 INGRES) → PostgreSQL descends from the Berkeley/INGRES/POSTGRES branch.
 
-## Module 62. Why PostgreSQL is considered well-designed
+## Module 66. Why PostgreSQL is considered well-designed
 
 **Goal:** answer the student's stated question about Postgres specifically.
 
@@ -2324,13 +2582,13 @@ theory in this course:
   hard correctness corners (three-valued logic and NULLs, Module 32/33;
   serializable isolation via Serializable Snapshot Isolation) more rigorously
   than many peers.
-- **MVCC done thoroughly** (Module 57): readers and writers do not block,
+- **MVCC done thoroughly** (Module 61): readers and writers do not block,
   enabling mixed workloads.
 - **Extensible type system.** Stonebraker's object-relational vision: users can
-  add data types, operators, index methods (GiST/GIN, Module 58), and functions.
+  add data types, operators, index methods (GiST/GIN, Module 62), and functions.
   This is why Postgres absorbed JSON, full-text search, geometric/GIS data
   (PostGIS), and more without architectural upheaval.
-- **A genuine, well-architected optimizer** (Module 59/60) with real statistics
+- **A genuine, well-architected optimizer** (Module 63/64) with real statistics
   and multiple join methods.
 - **Open development and durability/reliability culture** (write-ahead logging,
   crash safety).
@@ -2344,16 +2602,16 @@ Pick the two PostgreSQL design choices you find most compelling and tie each bac
 to a specific earlier module's concept.
 
 **Model answer.**
-Open-ended. Strong pairings: (i) MVCC ↔ Module 57's isolation mechanisms;
-(ii) extensible types/index methods ↔ Module 58 indexes and the object-relational
+Open-ended. Strong pairings: (i) MVCC ↔ Module 61's concurrency mechanisms;
+(ii) extensible types/index methods ↔ Module 62 indexes and the object-relational
 idea; (iii) rigorous NULL/3VL handling ↔ Modules 32–33; (iv) cost-based optimizer
-↔ Modules 59–60. Any two, correctly connected, are full marks.
+↔ Modules 63–64. Any two, correctly connected, are full marks.
 
 **Feedback notes.**
 Reward connections back to the theory rather than feature-listing. The point is
 that Postgres's strengths are the course's principles, realized well.
 
-## Module 63. Codd's Turing Award (1981)
+## Module 67. Codd's Turing Award (1981)
 
 **Goal:** articulate precisely what Codd was honoured for.
 
@@ -2389,7 +2647,7 @@ product.
 Push for *specific* contributions tied to modules. A vague "he made databases"
 answer should be sent back for the concrete list.
 
-## Module 64. Stonebraker's Turing Award (2014)
+## Module 68. Stonebraker's Turing Award (2014)
 
 **Goal:** articulate the distinct, systems-oriented nature of his award.
 
@@ -2430,7 +2688,7 @@ The "theory vs systems, both needed" framing is the goal. Note PostgreSQL as the
 concrete artifact linking Stonebraker's systems work to the student's stated end
 goal of learning Postgres.
 
-## Module 65. Capstone and next steps
+## Module 69. Capstone and next steps
 
 **Goal:** synthesize the whole course and hand off to real Postgres.
 
@@ -2484,7 +2742,7 @@ they named. Mark the course complete in `progress.md`.
 ```
 σ_p(R)     selection: rows of R satisfying predicate p
 π_L(R)     projection: columns L of R (set semantics: dedupes)
-R ∪ S      union            R ∩ S   intersection      R − S   difference
+R ∪ S      union            R ∩ S   intersection (derived)   R − S   difference
 R × S      Cartesian product
 ρ_S(R)     rename R to S (optionally its attributes)
 R ⋈ S      natural join (equate shared-named attributes, merge them)
