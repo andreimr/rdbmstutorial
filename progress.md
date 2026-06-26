@@ -35,8 +35,8 @@
 
 | #  | Module | Status | Date | Notes (struggles, corrections, hints used) |
 |----|--------|--------|------|---------------------------------------------|
-| 1  | Life before relational databases                        | todo |  |  |
-| 2  | The data independence problem                           | todo |  |  |
+| 1  | Life before relational databases                        | done | 2026-06-26 | Correctly identified both problems; noted (2) is a consequence of (1), not independent — sharp catch, affirmed |
+| 2  | The data independence problem                           | in-progress | 2026-06-26 | Exercise posed, awaiting answer |
 | 3  | Codd's leap: data as mathematics                        | todo |  |  |
 | 4  | Sets, tuples, and Cartesian products (refresher)        | todo |  |  |
 | 5  | Domains, attributes, and the formal relation            | todo |  |  |
@@ -109,7 +109,7 @@
 
 > One line per session: date, modules covered, where we stopped.
 
-- (no sessions yet)
+- 2026-06-26: Session 1. Completed Module 1; Module 2 exercise posed, paused.
 
 ## Open questions / things to revisit
 
